@@ -45,27 +45,6 @@ public class ApacheLogAnalyzer {
 
                 // If the HTTP status code is 200, update the hit counter for the IP and URL
                 if (statusCode == 200) {
-                    Map<String, Object> urlSummary = summary.getOrDefault(ip, new HashMap<>());
-                    //List<Map<String, Integer>> urlList = (List) urlSummary.get("urls");
-                    //List<Map<String, Integer>> urlList = (List) urlSummary.getOrDefault("urls", new ArrayList<>());
-                    Map<String, Integer> urlList = (Map<String, Integer>) urlSummary.getOrDefault("urls", new HashMap<>());
-                    urlList.put(url, urlList.getOrDefault(url, 0) + 1);
-                    //urlList = checkIfKeyExists(urlList, url);
-                    
-                    /*
-                    if(hitCount == 0) {
-                        Map<String, Integer> urlObj = new HashMap<>();
-                        urlObj.put(url, ++hitCount);
-                        urlList.add(urlObj);
-                    } else {
-                        urlList.get
-                    }
-                    */
-                    //Integer hitCount = (Integer) urlSummary.getOrDefault(url, (Object) 0);
-                    Integer total_hit = (Integer) urlSummary.getOrDefault("total_hit", (Object) 0);                    
-                    urlSummary.put("urls", urlList);
-                    urlSummary.put("total_hit", ++total_hit);
-                    summary.put(ip, urlSummary);
                     
                     /*
                     Map<String, Summary> urlSummary = summary.getOrDefault(ip, new HashMap<>());                
