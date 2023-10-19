@@ -120,7 +120,7 @@ public class ApacheLogAnalyzer {
         }
               
         // Create a directory to store the split log files
-        File splitLogDirectory = new File(filename.replace(".log", ""));
+        File splitLogDirectory = new File("data/" + filename.replace(".log", ""));
         if (!splitLogDirectory.exists() || !splitLogDirectory.isDirectory()) {
             System.out.println("directory not exist");
             if(splitLogDirectory.mkdir()) {
@@ -159,23 +159,7 @@ public class ApacheLogAnalyzer {
         
         logDataPerIp = new HashMap<>();
     }
-    
-    private static void writeToJsonFile(Map<String, Map<String, Object>> _summary, int _jsonFileNumber) {
-        Gson gson = new Gson();
-        String json = gson.toJson(_summary);
-        try {
-        FileWriter writer = new FileWriter("output"+ _jsonFileNumber +".json");
-        writer.write(json);
-        writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        /*
-        _summary.forEach((key, value) -> {
-            System.out.println(key);            
-        });
-*/
-    }
+        
     
     private static void writeToFile(
             List<Map.Entry<String, Map<String, Summary>>> _sortedSummary, 
@@ -209,35 +193,22 @@ public class ApacheLogAnalyzer {
             jsonArray.add(jsonObject);
         }
 
+        File dataDirectory = new File("data");
+        if (!dataDirectory.exists() || !dataDirectory.isDirectory()) {
+            System.out.println("directory data doesn't exist");
+            if(dataDirectory.mkdir()) {
+                System.out.println("create data dir");
+            } else {
+                System.out.println("cannot create data dir");
+            }
+        }
+        
         // Write the JSON array to a file
-        FileWriter writer = new FileWriter(_fileName);
+        FileWriter writer = new FileWriter(dataDirectory + "/" + _fileName);
         writer.write(gson.toJson(jsonArray));
         writer.close();
     }
     
-    public static List<Map<String, Integer>> checkIfKeyExists(List<Map<String, Integer>> maps, String key) {               
-        boolean isExist = false;
-        if(maps != null && maps.size() > 0) {
-            for (Map<String, Integer> map : maps) {            
-                if (map.containsKey(key)) {
-                    map.put(key, map.getOrDefault(key, 0) + 1);
-                    isExist = true;
-                    break;
-                }                        
-            }
-            if (!isExist) {
-                Map<String, Integer> map = new HashMap<>();
-                map.put(key, map.getOrDefault(key, 0) + 1);
-                maps.add(map);
-            }
-        } else {            
-            Map<String, Integer> map = new HashMap<>();
-            map.put(key, map.getOrDefault(key, 0) + 1);
-            maps.add(map);            
-        }
-        return maps;
-    }
-
     private static class Summary {
         int hitCount;
         int totalHit;
