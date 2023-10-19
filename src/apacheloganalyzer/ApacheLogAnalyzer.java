@@ -13,21 +13,84 @@ import java.util.function.Function;
 public class ApacheLogAnalyzer {
 
     public static void main(String[] args) throws Exception {
-        // Read the Apache web server log file        
-        BufferedReader reader = new BufferedReader(new FileReader(args[0]));
+        
+        
+        String filename = args[0];
+        generateFile(0, 6, filename, "ip");
+        generateFile(6, 0, filename, "url");
+              
+        generateDetailFile(filename);
+        
+        
 
+    }
+    
+    private static void generateFile(int _tag, int _subtag, String filename, String flag) 
+            throws FileNotFoundException, IOException, Exception {
+        // Read the Apache web server log file        
+        BufferedReader reader = new BufferedReader(new FileReader(filename));
+        
         // Create a map to store the summary data
-        //Map<String, Map<String, Summary>> summary = new HashMap<>();
-        Map<String, Map<String, Object>> summary = new HashMap<>();
-        Map<String, Map<String, Summary>> summary2 = new HashMap<>();
+        Map<String, Map<String, Summary>> summary = new HashMap<>();  
+        
+        // Iterate over the log file and update the summary map
+        String line;
+        
+        while ((line = reader.readLine()) != null) {
+            // Split the log line into fields
+            String[] fields = line.split(" ");
+
+            // Get the IP address, URL, and HTTP status code
+            String tag = fields[_tag];
+            String subtag = fields[_subtag];
+            String timestamp = fields[3]+ " " + fields[4];
+            timestamp.replace("[", "").replace("]", "");
+            
+            String url = fields[6];
+            
+            if(FilterUrl.validate(fields[6])) {
+                url = FilterUrl.stripUrl(url);
+                
+                int statusCode = Integer.parseInt(fields[8]);
+
+                // If the HTTP status code is 200, update the hit counter for the IP and URL
+                if (statusCode == 200) {
+                                        
+                    Map<String, Summary> urlSummary = summary.getOrDefault(tag, new HashMap<>());                
+                    Summary summaryObject = urlSummary.getOrDefault(subtag, new Summary());
+                    summaryObject.hitCount++;
+                    summaryObject.totalHit++;
+                    urlSummary.put(subtag, summaryObject);
+                    summary.put(tag, urlSummary);                                                                            
+                                       
+                }
+            }
+        }       
+        // Close the reader
+        reader.close();
+        
+        // Sort the summary map by total hit counter descending       
+        List<Map.Entry<String, Map<String, Summary>>> sortedSummary = new ArrayList<>(summary.entrySet());
+        sortedSummary.sort((o1, o2) -> Integer.compare(o2.getValue().values().stream().mapToInt(summaryObject -> summaryObject.totalHit).sum(), o1.getValue().values().stream().mapToInt(summaryObject -> summaryObject.totalHit).sum()));
+
+        writeToFile(sortedSummary, summary, "ip", "urls", filename + "_"+flag+".json");
+        
+        // clear hashmap
+        summary = new HashMap<>();
+    }
+    
+    
+    private static void generateDetailFile(String filename) 
+            throws FileNotFoundException, IOException {
+        // Read the Apache web server log file        
+        BufferedReader reader = new BufferedReader(new FileReader(filename));
         
         // Create a map to store the log data per IP
         Map<String, List<LogEntry>> logDataPerIp = new HashMap<>();
         
         // Iterate over the log file and update the summary map
         String line;
-        int lineNumber = 1;
-        int jsonFileNumber = 1;
+        
         while ((line = reader.readLine()) != null) {
             // Split the log line into fields
             String[] fields = line.split(" ");
@@ -36,7 +99,7 @@ public class ApacheLogAnalyzer {
             String ip = fields[0];
             String url = fields[6];
             String timestamp = fields[3]+ " " + fields[4];
-            timestamp.replace("[", "").replace("]", "");
+            timestamp.replace("[", "").replace("]", "");                      
             
             if(FilterUrl.validate(url)) {
                 url = FilterUrl.stripUrl(url);
@@ -45,64 +108,19 @@ public class ApacheLogAnalyzer {
 
                 // If the HTTP status code is 200, update the hit counter for the IP and URL
                 if (statusCode == 200) {
-                    
-                    /*
-                    Map<String, Summary> urlSummary = summary.getOrDefault(ip, new HashMap<>());                
-                    Summary summaryObject = urlSummary.getOrDefault(url, new Summary());
-                    summaryObject.hitCount++;
-                    summaryObject.totalHit++;
-                    urlSummary.put(url, summaryObject);
-                    summary.put(ip, urlSummary);
-                    
-                    Map<String, Summary> ipSummary = summary2.getOrDefault(url, new HashMap<>());                
-                    Summary summaryObject2 = ipSummary.getOrDefault(ip, new Summary());
-                    summaryObject2.hitCount++;
-                    summaryObject2.totalHit++;
-                    ipSummary.put(ip, summaryObject2);
-                    summary2.put(url, ipSummary);
-                    
                     // Create a LogEntry object
                     LogEntry logEntry = new LogEntry(ip, timestamp, url);
 
                     // Add the LogEntry object to the list of LogEntry objects for the IP address                    
                     List<LogEntry> arr = new ArrayList<LogEntry>();
                     arr.add(logEntry);
-                    logDataPerIp.computeIfAbsent(ip, k -> new ArrayList<LogEntry>()).add(logEntry);                   
-                    */
-                    
-                    if (lineNumber++ >= 10000) {
-                        lineNumber = 1;
-                        
-                        writeToJsonFile(summary, jsonFileNumber);
-                        jsonFileNumber++;
-                        summary = new HashMap<>();
-                    }
+                    logDataPerIp.computeIfAbsent(ip, k -> new ArrayList<LogEntry>()).add(logEntry); 
                 }
             }
         }
-        
-        if(lineNumber >= 1) {
-            writeToJsonFile(summary, jsonFileNumber);
-            //jsonFileNumber++;
-            //summary = new HashMap<>();
-        }
-
-        // Close the reader
-        reader.close();
-
-        // Sort the summary map by total hit counter descending
-        /*
-        List<Map.Entry<String, Map<String, Summary>>> sortedSummary = new ArrayList<>(summary.entrySet());
-        sortedSummary.sort((o1, o2) -> Integer.compare(o2.getValue().values().stream().mapToInt(summaryObject -> summaryObject.totalHit).sum(), o1.getValue().values().stream().mapToInt(summaryObject -> summaryObject.totalHit).sum()));
-
-        List<Map.Entry<String, Map<String, Summary>>> sortedSummary2 = new ArrayList<>(summary2.entrySet());
-        sortedSummary2.sort((o1, o2) -> Integer.compare(o2.getValue().values().stream().mapToInt(summaryObject2 -> summaryObject2.totalHit).sum(), o1.getValue().values().stream().mapToInt(summaryObject2 -> summaryObject2.totalHit).sum()));
-
-        writeToFile(sortedSummary, summary, "ip", "urls", args[0] + "1.json");
-        writeToFile(sortedSummary2, summary2, "url", "ips", args[0] + "2.json");
               
         // Create a directory to store the split log files
-        File splitLogDirectory = new File(args[0].replace(".log", ""));
+        File splitLogDirectory = new File(filename.replace(".log", ""));
         if (!splitLogDirectory.exists() || !splitLogDirectory.isDirectory()) {
             System.out.println("directory not exist");
             if(splitLogDirectory.mkdir()) {
@@ -138,7 +156,8 @@ public class ApacheLogAnalyzer {
             writer.close();
 
         }
-*/
+        
+        logDataPerIp = new HashMap<>();
     }
     
     private static void writeToJsonFile(Map<String, Map<String, Object>> _summary, int _jsonFileNumber) {
