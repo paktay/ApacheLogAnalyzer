@@ -73,7 +73,9 @@ public class ApacheLogAnalyzer {
         List<Map.Entry<String, Map<String, Summary>>> sortedSummary = new ArrayList<>(summary.entrySet());
         sortedSummary.sort((o1, o2) -> Integer.compare(o2.getValue().values().stream().mapToInt(summaryObject -> summaryObject.totalHit).sum(), o1.getValue().values().stream().mapToInt(summaryObject -> summaryObject.totalHit).sum()));
 
-        writeToFile(sortedSummary, summary, "ip", "urls", filename + "_"+flag+".json");
+        File file = new File(filename);
+        String fileName = file.getName();
+        writeToFile(sortedSummary, summary, "ip", "urls", fileName + "_"+flag+".json");
         
         // clear hashmap
         summary = new HashMap<>();
@@ -118,9 +120,12 @@ public class ApacheLogAnalyzer {
                 }
             }
         }
+        
+        File file = new File(filename);
+        String fileName = file.getName();
               
         // Create a directory to store the split log files
-        File splitLogDirectory = new File("data/" + filename.replace(".log", ""));
+        File splitLogDirectory = new File("data/" + fileName.replace(".log", ""));
         if (!splitLogDirectory.exists() || !splitLogDirectory.isDirectory()) {
             System.out.println("directory not exist");
             if(splitLogDirectory.mkdir()) {
@@ -167,6 +172,8 @@ public class ApacheLogAnalyzer {
             String _tag,
             String _subtag,
             String _fileName) throws Exception {
+        
+        
         
         // Convert the sorted summary map to a JSON array
         Gson gson = new Gson();
